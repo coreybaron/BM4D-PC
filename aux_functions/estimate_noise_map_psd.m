@@ -58,7 +58,7 @@ sigma_map(sigma_map<=0)=eps;
 
 % *********** estimate noise PSD, complex-valued data ***********
 
-I_Noisy_to_est_PSD = I_Noisy./sigma_map; %normalize
+I_Noisy_to_est_PSD = I_noisy_to_est./sigma_map; %normalize
 
 
 % ** only inside a masked region
