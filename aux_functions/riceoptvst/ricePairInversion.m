@@ -45,7 +45,8 @@ function [nuOut, sigmaOut]=ricePairInversion(mu,s)
 % --------------------------------------------------------------------------------------------
 %
 
-load('Rice_VST_A.mat','nu','Ez','stdz')
+load('Rice_VST_B.mat','nu','Ez','stdz')
+
 
 nu_over_sigma=interp1(Ez./stdz,nu,mu./s,'linear','extrap');  % this the inverse of H
 

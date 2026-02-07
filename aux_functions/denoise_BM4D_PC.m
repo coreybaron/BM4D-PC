@@ -98,6 +98,19 @@ fprintf('\n **************************************** \n')
 
 I_noisy = double(dwi_prepareFiles(file_magn,file_phase));
 
+[filepath,~,~] = fileparts(file_magn) ;
+
+mask_file = dir([filepath filesep '*mask_PSD.nii']); % mask for psd calculation. to avoid fake/forced backgrounds that are all zeroed out.
+
+if ~isempty(mask_file)
+    I_mask_to_PSD = double(niftiread([mask_file(1).folder filesep mask_file(1).name]));
+    I_mask_to_PSD = I_mask_to_PSD(:,:,:,1);
+else
+    I_mask_to_PSD = ones(size(I_noisy));
+    I_mask_to_PSD = I_mask_to_PSD(:,:,:,1);
+end
+
+
 %% ** start the core processing ***
 
 fprintf('Estimating noise Map and noise PSD ...\n')
@@ -121,7 +134,7 @@ end
 
 if opt.flag_magnitude_only == 0 %
   
-    [Sigma_map,loc_PSD] = estimate_noise_map_psd(I_noisy(:,:,:,bvals_round==max(uniq_bvals)));
+    [Sigma_map,loc_PSD] = estimate_noise_map_psd(I_noisy(:,:,:,bvals_round==max(uniq_bvals)),I_mask_to_PSD);
 
     if ~isempty(loc_PSD)
         [X, Y, Z] = size(Sigma_map);
@@ -141,7 +154,7 @@ else %magnitude data
 
     fprintf('Denoising Magnitude Image with VST\n')
 
-    [Sigma_map,loc_PSD] = estimate_noise_map_psd_VST(I_noisy(:,:,:,bvals_round==max(uniq_bvals))); %
+    [Sigma_map,loc_PSD] = estimate_noise_map_psd_VST(I_noisy(:,:,:,bvals_round==max(uniq_bvals)),I_mask_to_PSD); %
 
     [X, Y, Z] = size(Sigma_map);
 

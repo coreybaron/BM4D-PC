@@ -1,9 +1,13 @@
 
-function [I_denoised]= BM4D_PC(I_Noisy, Estimated_NoiseMap, glob_PSD, profile)
+function [I_denoised]= BM4D_PC(I_Noisy, Estimated_NoiseMap, glob_PSD, profile,flag_noise_estimate)
 
 
 if(~exist('profile', 'var'))
     profile = 'np';
+end
+
+if(~exist('flag_noise_estimate', 'var'))
+    flag_noise_estimate = 0;
 end
 
 %****** Deviding noisy image by the Estimated map ****%
@@ -39,7 +43,12 @@ variances = ones(1,W); % due to the normalization by Estimated map, variance is 
 %% bm4d profile setup
 BM4D_profile= get_BM4D_profile(profile); %get profile settings
 
-stage_arg = BM4DProfile.ALL_STAGES; %perform both Hard-Thresholding and Wiener stages of BM4D
+if flag_noise_estimate==0
+    stage_arg = BM4DProfile.ALL_STAGES; %perform both Hard-Thresholding and Wiener stages of BM4D
+else
+    stage_arg = BM4DProfile.HARD_THRESHOLDING; %perform only Hard-Thresholding
+    BM4D_profile.filter_strength = 1.05;
+end
 
 
 %% Denoise first Component and getting block-matching
