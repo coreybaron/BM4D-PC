@@ -23,13 +23,15 @@ if ~isempty(loc_PSD)
 
     if size(loc_PSD,3)>1
         glob_PSD = FFT_PSD_Upsampling(loc_PSD, [X Y Z]); % upsampling psd
+        PSD65 = FFT_PSD_Upsampling(loc_PSD, [65 65 65]); % upsampling psd for bm4d parameters estimation
     else
         glob_PSD = repmat(FFT_PSD_Upsampling(loc_PSD, [X Y 1]),[1 1 Z]).*Z; % upsampling psd
+        PSD65 = repmat(FFT_PSD_Upsampling(loc_PSD, [65 65 1]),[1 1 65]).*65; % upsampling psd for bm4d parameters estimation
     end
 end
 
 
-I_denoised = BM4D_PC(I_noisy_orig, Sigma_map, glob_PSD, 'mp', 1);
+I_denoised = BM4D_PC(I_noisy_orig, Sigma_map, glob_PSD, PSD65, 'mp', 1);
 
 I_denoised = max(eps,I_denoised);
 

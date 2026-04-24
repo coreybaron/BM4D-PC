@@ -7,6 +7,7 @@ fprintf('Preparing files ... \n')
 
 if isempty(file_phase)
     fprintf('Magnitude-only data ...  \n')
+    fprintf('Will use Rician VST framework ...  \n')
     I_noisy_phase_stab = (niftiread(file_magn));
 
 else

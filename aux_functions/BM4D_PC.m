@@ -1,5 +1,5 @@
 
-function [I_denoised]= BM4D_PC(I_Noisy, Estimated_NoiseMap, glob_PSD, profile,flag_noise_estimate)
+function [I_denoised]= BM4D_PC(I_Noisy, Estimated_NoiseMap, glob_PSD, PSD65, profile,flag_noise_estimate)
 
 
 if(~exist('profile', 'var'))
@@ -41,7 +41,7 @@ variances = ones(1,W); % due to the normalization by Estimated map, variance is 
 
 
 %% bm4d profile setup
-BM4D_profile= get_BM4D_profile(profile); %get profile settings
+BM4D_profile= get_BM4D_profile(profile,PSD65); %get profile settings
 
 if flag_noise_estimate==0
     stage_arg = BM4DProfile.ALL_STAGES; %perform both Hard-Thresholding and Wiener stages of BM4D
@@ -52,8 +52,9 @@ end
 
 
 %% Denoise first Component and getting block-matching
-
-fprintf('Denoising first Component and getting block-matching poisitions...\n')
+if flag_noise_estimate==0
+    fprintf('Denoising first Component and getting block-matching poisitions...\n')
+end
 
 I_denoised = double(I_Noisy);
 
@@ -65,16 +66,29 @@ tic_first_pc = tic;
 
 elap_time_first_pc = toc(tic_first_pc);
 
-fprintf('Elapsed time denoising first PC = %.2f (sec) ...\n',elap_time_first_pc)
+if flag_noise_estimate==0
+    fprintf('Elapsed time denoising first PC = %.2f (sec) ...\n',elap_time_first_pc)
+end
 
 %% Denoise remaining PCs
-fprintf('Denoising remaining Components ...\n')
-fprintf('Estimated time to finish = %.2f (sec) ...\n',elap_time_first_pc*(W-1));
+if flag_noise_estimate==0
+    fprintf('Denoising remaining Components ...\n')
+
+    est_time_min = elap_time_first_pc * (W - 1) / 60;
+
+   
+    fprintf('Remaining processing time = %.2f min ...\n\n', est_time_min);
+
+    finish_time = datetime('now') + minutes(est_time_min);
+    finish_time.Format = 'HH:mm';
+
+    fprintf('Estimated finish time: %s\n', string(finish_time));
+end
 
 for i=2:W
 
     [I_denoised(:,:,:,i)] = BM4D(I_Noisy(:,:,:,i), (glob_PSD.*variances(i)), BM4D_profile, stage_arg, match_arrs);
-            
+
 end
 
 

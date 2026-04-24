@@ -27,3 +27,21 @@ Please check instructions in the [demo file](demo_denoise_BM4D_PC.m)
 [2]. Mäkinen, Ymir, Lucio Azzari, and Alessandro Foi. "Collaborative filtering of correlated noise: Exact transform-domain variance for improved shrinkage and patch matching." IEEE Transactions on Image Processing 29 (2020): 8339-8354. https://doi.org/10.1109/TIP.2020.3014721
 
 [3]. Maggioni, Matteo, et al. "Nonlocal transform-domain filter for volumetric data denoising and reconstruction." IEEE transactions on image processing 22.1 (2012): 119-133. https://doi.org/10.1109/TIP.2012.2210725	
+
+## License
+
+This software is provided for **non-commercial use only**, including academic research and personal use.
+
+Commercial use is prohibited without prior written permission from the authors.
+
+See the LICENSE file for full details.
+
+## Third-Party Dependencies
+
+This software uses the BM4D algorithm.
+
+BM4D is distributed under its own license. Users of this software must
+comply with the BM4D license when using functionality that depends on it.
+
+For more information on BM4D and its license, please refer to the official
+BM4D distribution [BM4D webpage](https://webpages.tuni.fi/foi/GCF-BM3D).
