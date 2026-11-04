@@ -1,11 +1,6 @@
 
 function [sigma_map, loc_PSD]= estimate_noise_map_psd(I_noisy_orig,I_mask_to_PSD)
 
-if(~exist('I_mask_to_PSD', 'var')) || isempty(I_mask_to_PSD)
-    I_mask_to_PSD = ones(size(I_noisy_orig(:,:,:,1)));
-end
-
-
 % ****** PCA for noise estimation **********%
 
 [X, Y, Z, W] = size(I_noisy_orig);
@@ -55,8 +50,32 @@ sigma_map = medfilt3(sigma_map,[3 3 3]);
 
 sigma_map(sigma_map<=0)=eps;
 
+%% Create mask for regions that may have been masked during recon, or if skull stripping was performed etc.
+% We don't just check for 0, because iterative non-cartesian recons can
+% have a tiny amount of signal leaking into the masked region (if receiver
+% sensitivities are masked, for example).
 
-% *********** estimate noise PSD, complex-valued data ***********
+if isempty(I_mask_to_PSD)
+    % Find the median with a cube with half the FOV to get typical sigma
+    % values. Use central region to reduce how much masked regions affect the
+    % median estimate.
+    sig_typ = sigma_map(round(end/4):round(end*3/4),round(end/4):round(end*3/4),round(end/4):round(end*3/4));
+    sig_typ = median(sig_typ(:));
+    
+    % Set the threshold to 20% of median, since it would be very strange to
+    % have the noise vary by so much.
+    thresh_s = 0.2*sig_typ;
+    I_mask_to_PSD =  sigma_map > thresh_s;
+    clear sig_typ thresh_s
+
+    frac_masked = 1 - sum(I_mask_to_PSD(:))/numel(I_mask_to_PSD);
+    if frac_masked > 0.05
+        fprintf('  Found that %.1f %% of voxels were likely masked. Not including them in PSD estimate.\n', 100*frac_masked )
+    end
+end
+
+
+%% *********** estimate noise PSD, complex-valued data ***********
 
 I_Noisy_to_est_PSD = I_noisy_to_est./sigma_map; %normalize
 

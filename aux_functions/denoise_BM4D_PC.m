@@ -80,6 +80,19 @@ else
     opt.flag_magnitude_only = 0;
 end
 
+if ~isfield(opt,'flag_force_no_mask') || isempty(opt.flag_force_no_mask)
+    opt.flag_force_no_mask = 0;
+end
+
+% CB: Set phase normalization options
+%   Defaults from original code were 3 and 'tukey', respectively
+if ~isfield(opt,'phase_filter_width') || isempty(opt.phase_filter_width)
+    opt.phase_filter_width = 4;
+end
+if ~isfield(opt,'phase_filter_width') || isempty(opt.phase_filter_width)
+    opt.phase_filter_type = 'gauss';
+end
+
 %% check if bm4d files exist in the path
 
 if exist('BM4D','file') ~= 2
@@ -96,18 +109,21 @@ end
 fprintf('\n **************************************** \n')
 
 
-I_noisy = double(dwi_prepareFiles(file_magn,file_phase));
+I_noisy = double(dwi_prepareFiles(file_magn,file_phase,opt));
 
 [filepath,~,~] = fileparts(file_magn) ;
 
 mask_file = dir([filepath filesep '*mask_PSD.nii']); % mask for psd calculation. to avoid fake/forced backgrounds that are all zeroed out.
 
-if ~isempty(mask_file)
+if ~isempty(mask_file) && ~opt.flag_force_no_mask
     I_mask_to_PSD = double(niftiread([mask_file(1).folder filesep mask_file(1).name]));
     I_mask_to_PSD = I_mask_to_PSD(:,:,:,1);
+elseif opt.flag_force_no_mask
+    sz = [size(I_noisy), 1, 1, 1];
+    I_mask_to_PSD = ones(sz(1:3));
 else
-    I_mask_to_PSD = ones(size(I_noisy));
-    I_mask_to_PSD = I_mask_to_PSD(:,:,:,1);
+    % When empty, the mask will be automatically determined
+    I_mask_to_PSD = [];
 end
 
 
@@ -150,7 +166,9 @@ if opt.flag_magnitude_only == 0 %
 
     [I_denoised] = BM4D_PC(I_noisy, Sigma_map, glob_PSD, PSD65, opt.profile_bm4d);
 
-    I_denoised = abs(I_denoised);
+    % CB: changed to real output
+    %I_denoised = abs(I_denoised);
+    I_denoised = real(I_denoised);
 
 else %magnitude data
 
