@@ -1,5 +1,5 @@
 
-function [sigma_map, loc_PSD]= estimate_noise_map_psd(I_noisy_orig,I_mask_to_PSD)
+function [sigma_map, loc_PSD, I_mask_to_PSD]= estimate_noise_map_psd(I_noisy_orig,I_mask_to_PSD)
 
 % ****** PCA for noise estimation **********%
 

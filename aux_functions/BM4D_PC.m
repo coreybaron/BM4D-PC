@@ -53,7 +53,7 @@ end
 
 %% Denoise first Component and getting block-matching
 if flag_noise_estimate==0
-    fprintf('Denoising first Component and getting block-matching poisitions...\n')
+    fprintf('    Denoising first Component and getting block-matching poisitions...\n')
 end
 
 I_denoised = double(I_Noisy);
@@ -67,22 +67,22 @@ tic_first_pc = tic;
 elap_time_first_pc = toc(tic_first_pc);
 
 if flag_noise_estimate==0
-    fprintf('Elapsed time denoising first PC = %.2f (sec) ...\n',elap_time_first_pc)
+    fprintf('    Elapsed time denoising first PC = %.2f (sec) ...\n',elap_time_first_pc)
 end
 
 %% Denoise remaining PCs
 if flag_noise_estimate==0
-    fprintf('Denoising remaining Components ...\n')
+    fprintf('    Denoising remaining Components ...\n')
 
     est_time_min = elap_time_first_pc * (W - 1) / 60;
 
    
-    fprintf('Remaining processing time = %.2f min ...\n\n', est_time_min);
+    fprintf('    Remaining processing time for this stage = %.2f min ...\n\n', est_time_min);
 
     finish_time = datetime('now') + minutes(est_time_min);
     finish_time.Format = 'HH:mm';
 
-    fprintf('Estimated finish time: %s\n', string(finish_time));
+    fprintf('    Estimated finish time for this stage: %s\n', string(finish_time));
 end
 
 for i=2:W

@@ -80,6 +80,12 @@ else
     opt.flag_magnitude_only = 0;
 end
 
+if ~isfield(opt,'flag_discard_imag') || isempty(opt.flag_discard_imag)
+    % When the low pass filter for phase is pretty narrow, keeping the
+    % imaginary component becomes more important.
+    opt.flag_discard_imag = 0;
+end
+
 if ~isfield(opt,'flag_force_no_mask') || isempty(opt.flag_force_no_mask)
     opt.flag_force_no_mask = 0;
 end
@@ -109,7 +115,7 @@ end
 fprintf('\n **************************************** \n')
 
 
-I_noisy = double(dwi_prepareFiles(file_magn,file_phase,opt));
+[I_noisy, I_noisy_imag] = dwi_prepareFiles(file_magn,file_phase,opt);
 
 [filepath,~,~] = fileparts(file_magn) ;
 
@@ -148,43 +154,43 @@ else
     uniq_bvals = 1;
 end
 
+save_phase = 0;
 if opt.flag_magnitude_only == 0 %
   
-    [Sigma_map,loc_PSD] = estimate_noise_map_psd(I_noisy(:,:,:,bvals_round==max(uniq_bvals)),I_mask_to_PSD);
-
-    if ~isempty(loc_PSD)
-        [X, Y, Z] = size(Sigma_map);
-
-        if size(loc_PSD,3)>1
-            glob_PSD = FFT_PSD_Upsampling(loc_PSD, [X Y Z]); % upsampling psd
-            PSD65 = FFT_PSD_Upsampling(loc_PSD, [65 65 65]); % upsampling psd for bm4d parameters estimation
-        else
-            glob_PSD = repmat(FFT_PSD_Upsampling(loc_PSD, [X Y 1]),[1 1 Z]).*Z; % upsampling psd
-            PSD65 = repmat(FFT_PSD_Upsampling(loc_PSD, [65 65 1]),[1 1 65]).*65; % upsampling psd for bm4d parameters estimation
-        end
+    Nstage = 2;
+    if opt.flag_discard_imag
+        Nstage = 1;
     end
+    fprintf('Stage 1 of %d. Estimating noise Map and noise PSD for real channel ...\n',Nstage)
+
+    [Sigma_map,loc_PSD,I_mask_to_PSD] = estimate_noise_map_psd(I_noisy(:,:,:,bvals_round==max(uniq_bvals)),I_mask_to_PSD);
+    [glob_PSD, PSD65] = upsamplePSD(Sigma_map, loc_PSD);
 
     [I_denoised] = BM4D_PC(I_noisy, Sigma_map, glob_PSD, PSD65, opt.profile_bm4d);
 
-    % CB: changed to real output
-    %I_denoised = abs(I_denoised);
-    I_denoised = real(I_denoised);
+    if ~opt.flag_discard_imag
+        fprintf('Stage 2 of %d. Estimating noise Map and noise PSD for imag channel ...\n',Nstage)
+        % Note that here we re-use the I_mask_to_PSD estimated from real
+        % data
+        [Sigma_map_imag,loc_PSD_imag] = estimate_noise_map_psd(I_noisy_imag(:,:,:,bvals_round==max(uniq_bvals)),I_mask_to_PSD);
+        [glob_PSD_imag, PSD65_imag] = upsamplePSD(Sigma_map_imag, loc_PSD_imag);
+    
+        [I_denoised_imag] = BM4D_PC(I_noisy_imag, Sigma_map_imag, glob_PSD_imag, PSD65_imag, opt.profile_bm4d);
+        I_denoised_phase = atan2(I_denoised_imag, I_denoised);
+        I_denoised = sqrt(I_denoised.^2 + I_denoised_imag.^2);
+        clear I_denoised_imag
+
+        save_phase = 1;
+    else
+        I_denoised = abs(I_denoised);
+    end
 
 else %magnitude data
 
     
 
-    [Sigma_map,loc_PSD] = estimate_noise_map_psd_VST(I_noisy(:,:,:,bvals_round==max(uniq_bvals)),I_mask_to_PSD); %
-
-    [X, Y, Z] = size(Sigma_map);
-
-    if size(loc_PSD,3)>1
-        glob_PSD = FFT_PSD_Upsampling(loc_PSD, [X Y Z]); % upsampling psd
-        PSD65 = FFT_PSD_Upsampling(loc_PSD, [65 65 65]); % upsampling psd for bm4d parameters estimation
-    else
-        glob_PSD = repmat(FFT_PSD_Upsampling(loc_PSD, [X Y 1]),[1 1 Z]).*Z; % upsampling psd
-        PSD65 = repmat(FFT_PSD_Upsampling(loc_PSD, [65 65 1]),[1 1 65]).*65; % upsampling psd for bm4d parameters estimation
-    end
+    [Sigma_map,loc_PSD] = estimate_noise_map_psd_VST(I_noisy(:,:,:,bvals_round==max(uniq_bvals)),I_mask_to_PSD); 
+    [glob_PSD, PSD65] = upsamplePSD(Sigma_map, loc_PSD);
 
     fprintf('Denoising Magnitude Image with VST\n')
 
@@ -196,11 +202,26 @@ end
 
 
 %% Save Denoised file 
-dwi_savefile(file_magn,I_denoised)
+dwi_savefile(file_magn,I_denoised,0)
+if save_phase
+    dwi_savefile(file_magn,I_denoised_phase,1)
+end
 
 
 fprintf('\nFinished denoising with BM4D-PC.\n')
 fprintf('\n **************************************** \n')
 
 
+end
+
+function [glob_PSD, PSD65] = upsamplePSD(Sigma_map, loc_PSD)
+    [X, Y, Z] = size(Sigma_map);
+
+    if size(loc_PSD,3)>1
+        glob_PSD = FFT_PSD_Upsampling(loc_PSD, [X Y Z]); % upsampling psd
+        PSD65 = FFT_PSD_Upsampling(loc_PSD, [65 65 65]); % upsampling psd for bm4d parameters estimation
+    else
+        glob_PSD = repmat(FFT_PSD_Upsampling(loc_PSD, [X Y 1]),[1 1 Z]).*Z; % upsampling psd
+        PSD65 = repmat(FFT_PSD_Upsampling(loc_PSD, [65 65 1]),[1 1 65]).*65; % upsampling psd for bm4d parameters estimation
+    end
 end

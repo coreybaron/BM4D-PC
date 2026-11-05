@@ -1,5 +1,5 @@
 
-function I_noisy_phase_stab = dwi_prepareFiles(file_magn,file_phase,opt)
+function [I_noisy_phase_stab, I_noisy_phase_stab_imag] = dwi_prepareFiles(file_magn,file_phase,opt)
 
 
 
@@ -8,7 +8,8 @@ fprintf('Preparing files ... \n')
 if isempty(file_phase)
     fprintf('Magnitude-only data ...  \n')
     fprintf('Will use Rician VST framework ...  \n')
-    I_noisy_phase_stab = (niftiread(file_magn));
+    I_noisy_phase_stab = double(niftiread(file_magn));
+    I_noisy_phase_stab_imag = [];
 
 else
     fprintf('Complex-valued data ... performing phase stabilization \n')
@@ -16,6 +17,7 @@ else
     I_noisy_phase = double(niftiread(file_phase));
 
     I_noisy_phase_stab = perform_phase_stabilization(I_noisy_magn,I_noisy_phase,opt);
+    I_noisy_phase_stab_imag = imag(I_noisy_phase_stab);
     I_noisy_phase_stab = real(I_noisy_phase_stab);
    
 end
