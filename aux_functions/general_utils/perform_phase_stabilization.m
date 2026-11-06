@@ -11,19 +11,16 @@ if ~isfield(ARG,'phase_filter_width') || isempty(ARG.phase_filter_width)
     ARG.phase_filter_type = 'gauss';
 end
 
-phase_range=single(max(I_Phase(:)));
-phase_range_min=single(min(I_Phase(:)));
+phase_range=max(I_Phase(:));
+phase_range_min=min(I_Phase(:));
 
 % Combine magnitude and phase data into complex form
-
-I_Phase = single(I_Phase);
-
 %guarantee phase is in [-pi, pi]
 
 range_norm=phase_range-phase_range_min;
 range_center=(phase_range+phase_range_min)/range_norm*1/2;
-I_Phase = (single(I_Phase)./range_norm -range_center)*2*pi;
-I_complex = single(I_Mag)  .* exp(1i*I_Phase);
+I_Phase = (I_Phase./range_norm -range_center)*2*pi;
+I_complex = I_Mag  .* exp(1i*I_Phase);
 
 [nx, ny, ~, ~] = size(I_complex);
 

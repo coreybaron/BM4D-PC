@@ -46,7 +46,7 @@ stage_arg = BM4DProfile.ALL_STAGES;
 
 fprintf('Denoising first Component and getting block-matching poisitions...\n')
 
-I_PCA_denoised = double(I_Noisy);
+I_PCA_denoised = I_Noisy;
 
 i=1;
 

@@ -95,8 +95,13 @@ end
 if ~isfield(opt,'phase_filter_width') || isempty(opt.phase_filter_width)
     opt.phase_filter_width = 4;
 end
-if ~isfield(opt,'phase_filter_width') || isempty(opt.phase_filter_width)
+if ~isfield(opt,'phase_filter_type') || isempty(opt.phase_filter_type)
     opt.phase_filter_type = 'gauss';
+end
+
+% Set low pass filter width for noise map
+if ~isfield(opt,'noisemap_filter_width') || isempty(opt.noisemap_filter_width)
+    opt.noisemap_filter_width = 4;
 end
 
 %% check if bm4d files exist in the path
@@ -122,7 +127,8 @@ fprintf('\n **************************************** \n')
 mask_file = dir([filepath filesep '*mask_PSD.nii']); % mask for psd calculation. to avoid fake/forced backgrounds that are all zeroed out.
 
 if ~isempty(mask_file) && ~opt.flag_force_no_mask
-    I_mask_to_PSD = double(niftiread([mask_file(1).folder filesep mask_file(1).name]));
+    I_mask_to_PSD = niftiread([mask_file(1).folder filesep mask_file(1).name]);
+    I_mask_to_PSD = cast(I_mask_to_PSD,class(I_noisy));
     I_mask_to_PSD = I_mask_to_PSD(:,:,:,1);
 elseif opt.flag_force_no_mask
     sz = [size(I_noisy), 1, 1, 1];
@@ -163,7 +169,7 @@ if opt.flag_magnitude_only == 0 %
     end
     fprintf('Stage 1 of %d. Estimating noise Map and noise PSD for real channel ...\n',Nstage)
 
-    [Sigma_map,loc_PSD,I_mask_to_PSD] = estimate_noise_map_psd(I_noisy(:,:,:,bvals_round==max(uniq_bvals)),I_mask_to_PSD);
+    [Sigma_map,loc_PSD,I_mask_to_PSD] = estimate_noise_map_psd(I_noisy(:,:,:,bvals_round==max(uniq_bvals)),I_mask_to_PSD,opt.noisemap_filter_width);
     [glob_PSD, PSD65] = upsamplePSD(Sigma_map, loc_PSD);
 
     [I_denoised] = BM4D_PC(I_noisy, Sigma_map, glob_PSD, PSD65, opt.profile_bm4d);
@@ -171,8 +177,9 @@ if opt.flag_magnitude_only == 0 %
     if ~opt.flag_discard_imag
         fprintf('Stage 2 of %d. Estimating noise Map and noise PSD for imag channel ...\n',Nstage)
         % Note that here we re-use the I_mask_to_PSD estimated from real
-        % data
-        [Sigma_map_imag,loc_PSD_imag] = estimate_noise_map_psd(I_noisy_imag(:,:,:,bvals_round==max(uniq_bvals)),I_mask_to_PSD);
+        % data. We should NOT reuse the sigma_map etc, because phase
+        % stabalization can alter the noise statistics of real vs imag
+        [Sigma_map_imag,loc_PSD_imag] = estimate_noise_map_psd(I_noisy_imag(:,:,:,bvals_round==max(uniq_bvals)),I_mask_to_PSD,opt.noisemap_filter_width);
         [glob_PSD_imag, PSD65_imag] = upsamplePSD(Sigma_map_imag, loc_PSD_imag);
     
         [I_denoised_imag] = BM4D_PC(I_noisy_imag, Sigma_map_imag, glob_PSD_imag, PSD65_imag, opt.profile_bm4d);
@@ -189,7 +196,7 @@ else %magnitude data
 
     
 
-    [Sigma_map,loc_PSD] = estimate_noise_map_psd_VST(I_noisy(:,:,:,bvals_round==max(uniq_bvals)),I_mask_to_PSD); 
+    [Sigma_map,loc_PSD] = estimate_noise_map_psd_VST(I_noisy(:,:,:,bvals_round==max(uniq_bvals)),I_mask_to_PSD,opt.noisemap_filter_width); 
     [glob_PSD, PSD65] = upsamplePSD(Sigma_map, loc_PSD);
 
     fprintf('Denoising Magnitude Image with VST\n')

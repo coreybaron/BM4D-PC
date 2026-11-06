@@ -6,7 +6,7 @@ if(~exist('profile', 'var'))
     profile = 'np';
 end
 
-if(~exist('flag_noise_estimate', 'var'))
+if(~exist('flag_noise_estimate', 'var')) || isempty(flag_noise_estimate)
     flag_noise_estimate = 0;
 end
 
@@ -56,12 +56,9 @@ if flag_noise_estimate==0
     fprintf('    Denoising first Component and getting block-matching poisitions...\n')
 end
 
-I_denoised = double(I_Noisy);
-
+I_denoised = I_Noisy;
 i=1;
-
 tic_first_pc = tic;
-
 [I_denoised(:,:,:,i), match_arrs] = BM4D(I_Noisy(:,:,:,i),(glob_PSD.*variances(i)), BM4D_profile, stage_arg, {true, true});
 
 elap_time_first_pc = toc(tic_first_pc);
@@ -86,9 +83,7 @@ if flag_noise_estimate==0
 end
 
 for i=2:W
-
     [I_denoised(:,:,:,i)] = BM4D(I_Noisy(:,:,:,i), (glob_PSD.*variances(i)), BM4D_profile, stage_arg, match_arrs);
-
 end
 
 
