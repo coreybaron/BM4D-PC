@@ -1,9 +1,5 @@
 
-function [Sigma_map, loc_PSD]= estimate_noise_map_psd_VST(I_noisy_orig,I_mask_to_PSD)
-
-if(~exist('I_mask_to_PSD', 'var')) || isempty(I_mask_to_PSD)
-    I_mask_to_PSD = ones(size(I_noisy_orig(:,:,:,1)));
-end
+function [Sigma_map, loc_PSD, I_mask_to_PSD]= estimate_noise_map_psd_VST(I_noisy_orig,I_mask_to_PSD,noisemap_filt_width)
 
 
 % ****** PCA for noise estimation **********%
@@ -16,7 +12,7 @@ num_of_PCs = 3;
 % index of PC - backwards
 idx = W - num_of_PCs +1;
 
-[Sigma_map,loc_PSD] = estimate_noise_map_psd(I_noisy_orig,I_mask_to_PSD);
+[Sigma_map,loc_PSD,I_mask_to_PSD] = estimate_noise_map_psd(I_noisy_orig,I_mask_to_PSD);
 
 if ~isempty(loc_PSD)
     [X, Y, Z] = size(Sigma_map);
@@ -45,13 +41,23 @@ end
 Sigma_map = mean(Sigma_map_aux,4);
 
 
+%% Create mask for regions that may have been masked during recon, or if skull stripping was performed etc.
+% We don't just check for 0, because iterative non-cartesian recons can
+% have a tiny amount of signal leaking into the masked region (if receiver
+% sensitivities are masked, for example).
+if isempty(I_mask_to_PSD)
+    % Should actually never enter this if statement, because
+    % estimate_noise_map_psd above should find the mask.
+    I_mask_to_PSD = estimateMask(Sigma_map);
+end
 
-tempalte = fspecial3("gaussian",7,1.5);
-Sigma_map = imfilter(Sigma_map,tempalte,"symmetric");
+% smooth noise map
+Sigma_map = smooth_noise_map(Sigma_map,I_mask_to_PSD,noisemap_filt_width);
 
 Sigma_map = max(eps,Sigma_map);
 
-% ***** estimate noise PSD in VST domain ******* %
+
+%% ***** estimate noise PSD in VST domain ******* %
 
 I_noisy_orig = I_noisy_orig./Sigma_map;
 
